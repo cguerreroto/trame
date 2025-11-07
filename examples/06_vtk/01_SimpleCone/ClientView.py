@@ -9,15 +9,15 @@ Installation requirements:
 from vtkmodules.vtkFiltersSources import vtkConeSource
 
 from trame.app import get_server
-from trame.ui.vuetify import SinglePageLayout
+from trame.ui.vuetify3 import SinglePageLayout
 from trame.widgets import vtk as vtk_widgets
-from trame.widgets import vuetify
+from trame.widgets import vuetify3 as vuetify, vtk
 
 # -----------------------------------------------------------------------------
 # Trame initialization
 # -----------------------------------------------------------------------------
 
-server = get_server(client_type="vue2")
+server = get_server(client_type="vue3")
 state, ctrl = server.state, server.controller
 
 state.trame__title = "VTK Local rendering"
@@ -85,4 +85,40 @@ with SinglePageLayout(server) as layout:
 # -----------------------------------------------------------------------------
 
 if __name__ == "__main__":
-    server.start()
+    # option 1: start on default port 8080
+    # server.start()
+
+    # option 2: find a free port starting at 8080
+    import socket
+    
+    def is_port_free(port):
+        """Check if a port is free by attempting to bind to it"""
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as test_socket:
+            try:
+                test_socket.bind(('127.0.0.1', port))
+                return True
+            except OSError:
+                return False
+    
+    def find_free_port(start_port=8080, max_attempts=10):
+        """Find a free port starting from start_port"""
+        for port in range(start_port, start_port + max_attempts):
+            if is_port_free(port):
+                return port
+        return 0  # let OS pick if all attempts fail
+    
+    # determine which port to use
+    default_port = 8080
+    if is_port_free(default_port):
+        port = default_port
+    else:
+        print(f"Port {default_port} is in use, finding an available port...")
+        port = find_free_port(default_port + 1)  # start checking from 8081
+        if port:
+            print(f"Starting server on port {port}")
+        else:
+            print("Letting OS pick an available port...")
+            port = 0
+    
+    # start the server on the determined port
+    server.start(port=port)
